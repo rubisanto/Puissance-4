@@ -1,6 +1,8 @@
 import { createMachine } from "xstate";
 import { createModel } from 'xstate/lib/model';
-import { Player } from "../types";
+import { Player, PlayerColor } from "../types";
+import { joinGameAction } from "./actions";
+import { canJoinGuard } from "./guards";
 
 // type dédié 
 enum GameStates  {
@@ -13,8 +15,9 @@ enum GameStates  {
 
 export const GameModel = createModel(
     {
-        player: [] as Player[], 
+        players: [] as Player[], 
         currentPlayer: null as null | Player['id'],
+        rowLength: 4,
         grid: [
             ["E", "E", "E", "E", "E", "E", "E"],
             ["E", "E", "E", "E", "E", "E", "E"],
@@ -23,15 +26,31 @@ export const GameModel = createModel(
             ["E", "E", "E", "E", "E", "E", "E"],
             ["E", "E", "E", "E", "E", "E", "E"],
         ]
+    }, {
+        // les différents événements possibles
+        events: {
+            join: (playerId: Player['id'], name: Player['name']) => ({playerId, name}),
+            leave: (playerId: Player['id']) => ({playerId}),
+            chooseColor: (playerId: Player['id'], color: PlayerColor) => ({playerId, color}),
+            start: (playerId: Player['id']) => ({playerId}),
+            dropToken: (playerId: Player['id'], x: number) => ({playerId, x}),
+            restart: (playerId: Player['id']) => ({playerId}),
+        
+        }
     })
 
-export const GameMachine = createMachine({
+
+
+export const GameMachine = GameModel.createMachine({
 id: 'game',
+context: GameModel.initialContext,
 initial: GameStates.LOBBY,
 states: {
     [GameStates.LOBBY]: { 
         on: { 
             join: { 
+                cond: canJoinGuard,
+                actions: [GameModel.assign(joinGameAction)],
                 target: GameStates.LOBBY
             },
             leave: {
@@ -48,7 +67,7 @@ states: {
     [GameStates.PLAY]: {
         on: {
         dropToken: {
-            target: '??'
+            target: GameStates.VICTORY
         }
 
     }
