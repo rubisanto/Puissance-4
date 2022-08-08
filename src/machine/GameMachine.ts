@@ -1,8 +1,8 @@
 import { createMachine } from "xstate";
 import { createModel } from 'xstate/lib/model';
 import { Player, PlayerColor } from "../types";
-import { joinGameAction } from "./actions";
-import { canJoinGuard } from "./guards";
+import { joinGameAction, leaveGameAction } from "./actions";
+import { canJoinGuard, canLeaveGuard } from "./guards";
 
 // type dédié 
 enum GameStates  {
@@ -54,6 +54,8 @@ states: {
                 target: GameStates.LOBBY
             },
             leave: {
+                cond: canLeaveGuard,
+                actions: [GameModel.assign(leaveGameAction)],
                 target: GameStates.LOBBY
             },
             chooseColor: { 
